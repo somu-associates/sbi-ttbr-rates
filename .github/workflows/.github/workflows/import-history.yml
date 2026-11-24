@@ -1,0 +1,41 @@
+name: Import history (one-time)
+
+# Run this once by hand (Actions tab -> Import history (one-time) -> Run workflow).
+# It copies the 2020 onwards archive from github.com/sahilgupta/sbi-fx-ratekeeper
+# (MIT licence) into this repository's format.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Get the archive
+        run: git clone --depth 1 https://github.com/sahilgupta/sbi-fx-ratekeeper.git upstream
+
+      - name: Convert and copy
+        run: python import_history.py upstream
+
+      - name: Commit
+        run: |
+          rm -rf upstream
+          git config user.name  "casomu-rates-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add rates pdf_files site
+          git commit -m "Import 2020 onwards SBI rate archive (SBI FX RateKeeper, MIT)" || echo "Nothing to import"
+          git push
